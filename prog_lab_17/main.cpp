@@ -11,13 +11,13 @@ double f(double x) // функція з умови
 #include <iostream>
 double findStep(double number) // знайти оптимальний крок для поділок
 {
-    int i = 0;
-    while ((int)number == 0)
-    {
-        number *= 10;
-        i++;
-    }
-    number = round(number) / pow(10, i);
+    // int i = 0;
+    // while ((int)number == 0)
+    // {
+    //     number *= 10;
+    //     i++;
+    // }
+    // number = round(number) / pow(10, i);
     return number;
 }
 
@@ -30,16 +30,10 @@ std::string toString(double number) // округлити дійсне числ�
         number *= 10;
         i++;
     }
-    if (i == 0)
-    {
-        sprintf(str, "%d", (int)(round(number) + 0.5));
-    }
-    else
-    {
-        number *= 10;
-        number = round(number) / pow(10, i + 1);
-        sprintf(str, "%.2f", number);
-    }
+    number *= 100;
+    number = round(number);
+    number /= pow(10, i + 2);
+    sprintf(str, "%.2f", number);
     return std::string(str);
 }
 
@@ -77,156 +71,160 @@ double pxtoy(double px) // знайти аргумент функції, що в
 
 void renderXAxis()
 {
-    // TODO: СТРІЛОЧКИ та граничне перенесення осей до краю екрана, якщо поділки видно лише частково
-    // провести чорну горизонтальну пряму по краю вікна
-    sf::VertexArray lines(sf::Lines, 2);
-    lines[0].position.x = 0.0f;
-    lines[0].position.y = (double)resy;
-    lines[0].color = sf::Color::Black;
-    lines[1].position.x = (double)resx;
-    lines[1].position.y = (double)resy;
-    lines[1].color = sf::Color::Black;
-    if ((miny < -dy) && (dy < maxy)) // або через нуль функції, якщо він попадає у вікно
-    {
-        lines[0].position.y = ytopx(0);
-        lines[1].position.y = ytopx(0);
-    }
-    window.draw(lines);
-
-    double step = findStep((maxy - miny) / 20); // знайти оптимальний крок для поділок
     // знайти нулі функції в координатах вікна
-    double y = ytopx(0);
     double x = xtopx(0);
-    // перевірки, щоб нуль не виводився двічі (у renderXAxis і renderYAxis)
-    if (((x >= 0) && (x <= (double)resx)) && ((y <= 0) || (y >= (double)resy)))
-    {
-        // вивести нуль
-        text.setString("0");
-        text.setPosition(sf::Vector2f(x - charsize / 2, (double)resy - resy / 100 - charsize));
-        window.draw(text);
-        // вивести поділку біля нуля
-        lines[0].position.x = x;
-        lines[0].position.y = (double)resy - resy / 100;
-        lines[1].position.x = x;
-        lines[1].position.y = (double)resy + resy / 100;
-        window.draw(lines);
-    }
+    double y = ytopx(0);
+
     // якщо нуль функції знаходиться за межами видимої області, то малювати вісь біля краю вікна
-    if (!((x > 0) && (x < (double)resx)))
+    if ((x < 30) || (x - resx > -30))
     {
         x = 0;
     }
-    if (!((y > 0) && (y < (double)resy)))
+    if ((y < 30) || (y - resy > -30))
     {
-        y = (double)resy;
+        y = (double)resy - 1.0;
     }
-    for (double i = x + step; i < resx; i += step) // зробити поділки від нуля до правого краю
+
+    // провести чорну горизонтальну пряму по краю вікна
+    sf::VertexArray lines(sf::Lines, 2);
+    lines[0].position.x = 1.0f;
+    lines[0].position.y = y;
+    lines[0].color = sf::Color::Black;
+    lines[1].position.x = (double)resx - 1.0f;
+    lines[1].position.y = y;
+    lines[1].color = sf::Color::Black;
+    window.draw(lines);
+
+    double step = findStep((maxx - minx) / 16); // знайти оптимальний крок для поділок
+
+    // зробити нульову поділку
+    if ((x > 30) && (x - resx < -30))
+    {
+        lines[0].position.x = x;
+        lines[0].position.y = y - resy / 200;
+        lines[1].position.x = x;
+        lines[1].position.y = y + resy / 200;
+        window.draw(lines);
+    }
+
+    // зробити поділки від нуля функції до нижнього краю
+    double steptopx = xtopx(step) - xtopx(0);
+    for (double i = x + steptopx; i < resx - 30; i += steptopx)
     {
         // вивести відповідне значення функції біля поділки
         text.setString(toString(pxtox(i)));
-        text.setPosition(sf::Vector2f(i - charsize / 2, y - resy / 100 - charsize));
+        text.setPosition(sf::Vector2f(i - charsize, y - charsize - charsize / 2));
         window.draw(text);
         // намалювати поділку
         lines[0].position.x = i;
-        lines[0].position.y = y - resy / 100;
+        lines[0].position.y = y - resx / 200;
         lines[1].position.x = i;
-        lines[1].position.y = y + resy / 100;
+        lines[1].position.y = y + resx / 200;
         window.draw(lines);
     }
-    for (double i = x - step; i >= 0; i -= step) // зробити поділки від нуля до лівого краю
+
+    for (double i = x - steptopx; i >= 30; i -= steptopx) // зробити поділки від нуля функції до верхнього краю
     {
         // вивести відповідне значення функції біля поділки
         text.setString(toString(pxtox(i)));
-        text.setPosition(sf::Vector2f(i - charsize / 2, y - resy / 100 - charsize));
+        text.setPosition(sf::Vector2f(i - charsize, y - charsize - charsize / 2));
         window.draw(text);
         // намалювати поділку
         lines[0].position.x = i;
-        lines[0].position.y = y - resy / 100;
+        lines[0].position.y = y - resx / 200;
         lines[1].position.x = i;
-        lines[1].position.y = y + resy / 100;
+        lines[1].position.y = y + resx / 200;
         window.draw(lines);
     }
+
+    // намалювати стрілочку
+    lines[0].position.x = (double)resx - 1.0f;
+    lines[0].position.y = y;
+    lines[1].position.x = (double)resx - 1.0f - resx / 100;
+    lines[1].position.y = y - resy / 100;
+    window.draw(lines);
+    lines[1].position.x = (double)resx - 1.0f - resx / 100;
+    lines[1].position.y = y + resy / 100;
+    window.draw(lines);
 }
 
 void renderYAxis()
 {
-    // провести чорну вертикальну пряму по краю вікна
-    sf::VertexArray lines(sf::Lines, 2);
-    lines[0].position.x = 1.0f;
-    lines[0].position.y = 0.0f;
-    lines[0].color = sf::Color::Black;
-    lines[1].position.x = 1.0f;
-    lines[1].position.y = (double)resy;
-    lines[1].color = sf::Color::Black;
-    if ((minx < -dx) && (dx < maxx)) // або через нуль функції, якщо він попадає у вікно
-    {
-        lines[0].position.x = xtopx(0);
-        lines[1].position.x = xtopx(0);
-    }
-    window.draw(lines);
-
-    double step = findStep((maxy - miny) / 20); // знайти оптимальний крок для поділок
-    std::cout << step << std::endl;
     // знайти нулі функції в координатах вікна
     double x = xtopx(0);
     double y = ytopx(0);
-    // перевірки, щоб нуль не виводився двічі (у renderXAxis і renderYAxis)
-    if (((x <= 0) || (x >= (double)resx) ||
-         ((x >= 0) && (x <= (double)resx) && (y >= 0) && (y <= (double)resy))))
+
+    // якщо нуль функції знаходиться за межами видимої області, то малювати вісь біля краю вікна
+    if ((x < 30) || (x - resx > -30))
     {
-        if (!((x > 0) && (x < (double)resx)))
-        {
-            x = 0;
-        }
-        if (!((y > 0) && (y < (double)resy)))
-        {
-            y = 0;
-        }
-        // вивести нуль
-        text.setString("0");
-        text.setPosition(sf::Vector2f(x + charsize / 2, y));
-        window.draw(text);
+        x = 1.0;
+    }
+    if ((y < 30) || (y - resy > -30))
+    {
+        y = 0;
+    }
+
+    // провести чорну вертикальну пряму по краю вікна
+    sf::VertexArray lines(sf::Lines, 2);
+    lines[0].position.x = x;
+    lines[0].position.y = 1.0f;
+    lines[0].color = sf::Color::Black;
+    lines[1].position.x = x;
+    lines[1].position.y = (double)resy - 1.0f;
+    lines[1].color = sf::Color::Black;
+    window.draw(lines);
+
+    double step = findStep((maxx - minx) / 16); // знайти оптимальний крок для поділок
+
+    // зробити нульову поділку
+    if ((y > 30) && (y - resy < -30))
+    {
         lines[0].position.x = x - resx / 200;
         lines[0].position.y = y;
         lines[1].position.x = x + resx / 200;
         lines[1].position.y = y;
         window.draw(lines);
     }
-    // якщо нуль функції знаходиться за межами видимої області, то малювати вісь біля краю вікна
-    if (!((x > 0) && (x - (double)resx < 30)))
-    {
-        x = 0;
-    }
-    if (!((y > 0) && (y < (double)resy)))
-    {
-        y = 0;
-    }
-    for (double i = step; i < maxy; i += step) // зробити поділки від нуля функції до нижнього краю
+
+    // зробити поділки від нуля функції до нижнього краю
+    double steptopx = xtopx(step) - xtopx(0);
+    for (double i = y + steptopx; i < resy - 30; i += steptopx)
     {
         // вивести відповідне значення функції біля поділки
-        text.setString(toString(i));
-        text.setPosition(sf::Vector2f(x + charsize / 2, ytopx(i)));
+        text.setString(toString(pxtoy(i)));
+        text.setPosition(sf::Vector2f(x + charsize / 2, i - charsize));
         window.draw(text);
         // намалювати поділку
         lines[0].position.x = x - resx / 200;
-        lines[0].position.y = ytopx(i);
+        lines[0].position.y = i;
         lines[1].position.x = x + resx / 200;
-        lines[1].position.y = ytopx(i);
+        lines[1].position.y = i;
         window.draw(lines);
     }
-    for (double i = 0 - step; i >= miny; i -= step) // зробити поділки від нуля функції до верхнього краю
+
+    for (double i = y - steptopx; i >= 30; i -= steptopx) // зробити поділки від нуля функції до верхнього краю
     {
         // вивести відповідне значення функції біля поділки
-        text.setString(toString(i));
-        text.setPosition(sf::Vector2f(x + charsize / 2, i));
+        text.setString(toString(pxtoy(i)));
+        text.setPosition(sf::Vector2f(x + charsize / 2, i - charsize));
         window.draw(text);
         // намалювати поділку
         lines[0].position.x = x - resx / 200;
-        lines[0].position.y = ytopx(i);
+        lines[0].position.y = i;
         lines[1].position.x = x + resx / 200;
-        lines[1].position.y = ytopx(i);
+        lines[1].position.y = i;
         window.draw(lines);
     }
+
+    // намалювати стрілочку
+    lines[0].position.x = x;
+    lines[0].position.y = 1.0f;
+    lines[1].position.x = x - resx / 100;
+    lines[1].position.y = 1.0f + resy / 100;
+    window.draw(lines);
+    lines[1].position.x = x + resx / 100;
+    lines[1].position.y = 1.0f + resy / 100;
+    window.draw(lines);
 }
 
 void renderFunction() // оновлення графіку функції
@@ -244,6 +242,40 @@ void renderFunction() // оновлення графіку функції
         lines[1].position.y = ytopx(f(i)); // знайти значення функції
         window.draw(lines);                // намалювати лінію
     }
+}
+
+void renderZero()
+{
+    // знайти нуль функції
+    double x = xtopx(0);
+    double y = ytopx(0);
+
+    // перевірити, чи попадає він на графік
+    sf::VertexArray lines(sf::Lines, 2);
+    if (((x < 0) || (x > resx)) && ((y < 0) || (y > resy)))
+    {
+        return;
+    }
+
+    // розглянути три випадки:
+    // * потрібно вивести спільний нуль для обох осей
+    // * потрібно вивести нуль для осі Х
+    // * потрібно вивести нуль для осі У
+    if ((y < 0) || (y > resy))
+    {
+        y = (double)resy;
+    }
+    else if ((x < 0) || (x > resx))
+    {
+        x = 0;
+    }
+
+    x += charsize / 2;
+    y -= charsize + charsize / 2;
+
+    text.setString("0");
+    text.setPosition(sf::Vector2f(x, y));
+    window.draw(text);
 }
 
 int main(int, char **)
@@ -278,12 +310,13 @@ int main(int, char **)
                 dy = (maxy - miny) / resy;
                 break;
 
-            case sf::Event::KeyPressed:   // якщо нажато кнопку клавіатури
-                emx = (maxx - minx) / 10; // перерахувати крок для зміщень
-                emy = (maxy - miny) / 10;
-                switch (event.key.code)
+            case sf::Event::KeyPressed:   // якщо нажато клавішу
+                // emx = (maxx - minx) / 10; // підрахувати крок для зміщень
+                // emy = (maxy - miny) / 10;
+                switch (event.key.code) // перевірити, яку клавішу було нажато
                 {
                 case sf::Keyboard::PageUp: // розширити область
+                case sf::Keyboard::Equal:
                     maxx -= emx;
                     minx += emx;
                     miny += emy;
@@ -291,6 +324,7 @@ int main(int, char **)
                     break;
 
                 case sf::Keyboard::PageDown: // звузити область
+                case sf::Keyboard::Dash:
                     maxx += emx;
                     minx -= emx;
                     miny -= emy;
@@ -331,7 +365,8 @@ int main(int, char **)
 
         renderFunction(); // оновити графік
         renderYAxis();    // оновити вісь Y
-        //renderXAxis();    // оновити вісь Х
+        renderXAxis();    // оновити вісь Х
+        renderZero();     // вивести число нуль біля потрібної поділки
 
         window.display(); // оновити вікно
     }

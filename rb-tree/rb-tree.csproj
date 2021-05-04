@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <RootNamespace>G_C__</RootNamespace>
+    <RootNamespace>rb_tree</RootNamespace>
   </PropertyGroup>
 
 </Project>
